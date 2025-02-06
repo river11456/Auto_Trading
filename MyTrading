@@ -1,0 +1,45 @@
+import jwt 
+import uuid
+import hashlib
+import time
+from urllib.parse import urlencode
+import requests
+import json
+import os
+
+# 빗썸 API 키 설정
+BITHUMB_API_KEY = os.getenv('BITHUMB_API_KEY')
+BITHUMB_SECRET = os.getenv('BITHUMB_SECRET')
+BITHUMB_API_URL = 'https://api.bithumb.com'
+
+# Set API parameters
+requestBody = dict( market='KRW-USDT', side='bid', price=5000, ord_type='price' )
+
+# Generate access token
+query = urlencode(requestBody).encode()
+hash = hashlib.sha512()
+hash.update(query)
+query_hash = hash.hexdigest()
+payload = {
+    'access_key': BITHUMB_API_KEY,
+    'nonce': str(uuid.uuid4()),
+    'timestamp': round(time.time() * 1000), 
+    'query_hash': query_hash,
+    'query_hash_alg': 'SHA512',
+}   
+jwt_token = jwt.encode(payload, BITHUMB_SECRET)
+authorization_token = 'Bearer {}'.format(jwt_token)
+headers = {
+  'Authorization': authorization_token,
+  'Content-Type': 'application/json'
+}
+
+try:
+    # Call API
+    response = requests.post(BITHUMB_API_URL + '/v1/orders', data=json.dumps(requestBody), headers=headers)
+    # handle to success or fail
+    print(response.status_code)
+    print(response.json())
+except Exception as err:
+    # handle exception
+    print(err)

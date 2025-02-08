@@ -1,4 +1,4 @@
-import jwt 
+import jwt
 import uuid
 import hashlib
 import time
@@ -7,39 +7,154 @@ import requests
 import json
 import os
 
-# 빗썸 API 키 설정
+# 빗썸 API 키 설정 (환경변수로부터 읽어옴)
 BITHUMB_API_KEY = os.getenv('BITHUMB_API_KEY')
 BITHUMB_SECRET = os.getenv('BITHUMB_SECRET')
 BITHUMB_API_URL = 'https://api.bithumb.com'
 
-# Set API parameters
-requestBody = dict( market='KRW-USDT', side='bid', price=5000, ord_type='price' )
+def place_order(request_body: dict) -> None:
+    """
+    빗썸 API를 호출하여 주문을 실행하는 함수입니다.
+    
+    Args:
+        request_body (dict): API에 전달할 주문 파라미터
+            예시 (시장가 주문):
+                {
+                    'market': 'KRW-USDT',
+                    'side': 'ask',
+                    'volume': 4,
+                    'ord_type': 'market'
+                }
+    """
+    # Generate access token
+    # 요청 파라미터를 URL 인코딩하여 바이트 문자열로 변환
+    query = urlencode(request_body).encode()
+    
+    # SHA512 해시 생성
+    hash_obj = hashlib.sha512()
+    hash_obj.update(query)
+    query_hash = hash_obj.hexdigest()
+    
+    # JWT 페이로드 구성
+    payload = {
+        'access_key': BITHUMB_API_KEY,
+        'nonce': str(uuid.uuid4()),
+        'timestamp': round(time.time() * 1000),
+        'query_hash': query_hash,
+        'query_hash_alg': 'SHA512',
+    }
+    
+    # JWT 토큰 생성 및 Bearer 토큰 구성
+    jwt_token = jwt.encode(payload, BITHUMB_SECRET)
+    authorization_token = f'Bearer {jwt_token}'
+    
+    # 요청 헤더 구성
+    headers = {
+        'Authorization': authorization_token,
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        # API 호출
+        response = requests.post(BITHUMB_API_URL + '/v1/orders',
+                                 data=json.dumps(request_body),
+                                 headers=headers)
+        
 
-# Generate access token
-query = urlencode(requestBody).encode()
-hash = hashlib.sha512()
-hash.update(query)
-query_hash = hash.hexdigest()
-payload = {
-    'access_key': BITHUMB_API_KEY,
-    'nonce': str(uuid.uuid4()),
-    'timestamp': round(time.time() * 1000), 
-    'query_hash': query_hash,
-    'query_hash_alg': 'SHA512',
-}   
-jwt_token = jwt.encode(payload, BITHUMB_SECRET)
-authorization_token = 'Bearer {}'.format(jwt_token)
-headers = {
-  'Authorization': authorization_token,
-  'Content-Type': 'application/json'
-}
+        if request_body.get('side') == 'bid':
+            side='매수'
+        else:               
+            side='매도'
 
-try:
-    # Call API
-    response = requests.post(BITHUMB_API_URL + '/v1/orders', data=json.dumps(requestBody), headers=headers)
-    # handle to success or fail
-    print(response.status_code)
-    print(response.json())
-except Exception as err:
-    # handle exception
-    print(err)
+        if request_body.get('ord_type') == 'price' or request_body.get('ord_type') == 'market':
+            order_type = '시장가'
+        else: 
+            order_type = '지정가'
+
+
+        if response.status_code == 201:
+            print(f"🟢 주문 성공 : {order_type} {side}")
+        else :
+            print(f"🔴 주문 실패 : {order_type} {side}")
+ 
+
+        print(json.dumps(response.json(), indent=4, ensure_ascii=False))
+
+
+    except Exception as err:
+        print("🔴 API 호출 중 에러 발생:", err)
+
+
+
+
+def get_balance():
+    # Generate access token
+    payload = {
+        'access_key': BITHUMB_API_KEY,
+        'nonce': str(uuid.uuid4()),
+        'timestamp': round(time.time() * 1000)
+    }           
+    jwt_token = jwt.encode(payload, BITHUMB_SECRET)
+    authorization_token = 'Bearer {}'.format(jwt_token)
+    headers = {
+   'Authorization': authorization_token
+    }
+
+    try:
+        # Call API
+        response = requests.get(BITHUMB_API_URL + '/v1/accounts', headers=headers)
+        # handle to success or fail
+        # print(response.status_code)
+        # print(json.dumps(response.json(), indent=4, ensure_ascii=False))
+        return response.json()
+    except Exception as err:
+        # handle exception
+        print(err)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == '__main__':
+
+
+    balance_data = get_balance()
+
+    # USDT, KRW의 balance 정보를 찾기
+    usdt_balance = None
+    for asset in balance_data:
+        if asset.get("currency") == "USDT":
+            usdt_balance = asset.get("balance")
+        if asset.get("currency") == "KRW":
+            KRW_balance = asset.get("balance")
+
+    print(f'USDT 잔액 : {usdt_balance}')
+    print(f'KRW 잔액 : {KRW_balance}')
+
+    # KRW_balance가 문자열 형태이므로, 소수점 이하를 제거하기 위해 float로 변환 후 int로 변환
+    if KRW_balance is not None:
+        KRW_balance = int(float(KRW_balance)*0.99)
+
+
+    # 시장가 전량매수 테스트
+    #request_body = dict( market='KRW-USDT', side='bid', price=KRW_balance, ord_type='price' )
+    #place_order(request_body)
+
+    # 시장가 전량매도 테스트
+    request_body = dict( market='KRW-USDT', side='ask', volume=usdt_balance, ord_type='market' )
+    place_order(request_body)
+   
+
+    
+
+
+    

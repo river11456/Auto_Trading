@@ -118,12 +118,6 @@ def get_balance():
 
 
 
-
-
-
-
-
-
 if __name__ == '__main__':
 
 
@@ -147,7 +141,7 @@ if __name__ == '__main__':
 
     # 시장가 전량매수 테스트
     #request_body = dict( market='KRW-USDT', side='bid', price=KRW_balance, ord_type='price' )
-    #place_order(request_body)
+    #place_order(request_body)a
 
     # 시장가 전량매도 테스트
     request_body = dict( market='KRW-USDT', side='ask', volume=usdt_balance, ord_type='market' )

@@ -13,6 +13,7 @@ BITHUMB_API_URL = 'https://api.bithumb.com'
 client = XCoinAPI(BITHUMB_API_KEY, BITHUMB_SECRET)
 
 
+
 def get_ticker(order_currency, payment_currency = "KRW"):
     '''
     마지막 체결정보(Tick)을 제공
@@ -94,12 +95,17 @@ def order_market_buy(units, order_currency, payment_currency):
         "payment_currency": payment_currency      
     }
 
-    result = client.xcoinApiCall(endpoint,payload)
+    try:
+        result = client.xcoinApiCall(endpoint,payload)
+        
+        #print("API 응답:")
+        #print(json.dumps(result, indent=4, ensure_ascii=False))
 
-    print("API 응답:")
-    print(json.dumps(result, indent=4, ensure_ascii=False))
+        return result
+    
+    except Exception as err:
+        print(err)
 
-    return result
 
 def order_market_sell(units, order_currency, payment_currency):
     '''
@@ -111,13 +117,18 @@ def order_market_sell(units, order_currency, payment_currency):
         "order_currency": order_currency,
         "payment_currency": payment_currency      
     }
+    
+    try:
+        result = client.xcoinApiCall(endpoint,payload)
 
-    result = client.xcoinApiCall(endpoint,payload)
+        #print("API 응답:")
+        #print(json.dumps(result, indent=4, ensure_ascii=False))
+        return result
+    
+    except Exception as err:
+        print(err)
 
-    print("API 응답:")
-    print(json.dumps(result, indent=4, ensure_ascii=False))
-
-    return result
+  
 
 
 
@@ -125,7 +136,7 @@ def get_market_price_units(order_currency, payment_currency = "KRW", percent = 0
         
     orderbook = get_orderbook(order_currency)
     # 매도 호가 중 가장 낮은 가격 추출 (문자열을 실수로 변환)
-    lowest_ask_price = float(orderbook["data"]["bids"][0]["price"])
+    lowest_ask_price = float(orderbook["data"]["asks"][0]["price"])
 
     # 보유 중인 KRW 수량 조회
     balance = get_balance(order_currency)
@@ -133,42 +144,25 @@ def get_market_price_units(order_currency, payment_currency = "KRW", percent = 0
     #print(f"보유 중인 KRW: {total_krw} KRW")
 
     final_krw = int(total_krw * percent)
-    print(f"매수할 KRW: {final_krw} KRW")
+    #print(f"매수할 KRW: {final_krw} KRW")
 
     # 구매 가능한 수량 계산
-    result = round(final_krw / lowest_ask_price, 8)
-    
-    return result
+    unit = round(final_krw / lowest_ask_price, 8)
+  
+    return unit
 
 
 if __name__ == "__main__":
- 
-
-    signal = "buy"
-    
-
-    if signal == "buy":
-
-        # 구매 가능한 USDT 수량 계산
-        USDT_quantity = get_market_price_units("USDT", percent=0.9)
-        print(f"매수 가능한 USDT 수량: {USDT_quantity} USDT")
-
-        # 시장가 전량 매수
-        #order_market_buy(USDT_quantity, "USDT", "KRW")
-        
-    elif signal == "sell":
-
-        # 보유 중인 USDT 수량 조회
-        balance = get_balance("USDT")
-        USDT_quantity = float(balance["data"]["total_usdt"])
-
-        # 시장가 전량 매도
-        order_market_sell(USDT_quantity, "USDT", "KRW")
-    
-    else:
-        print("알 수 없는 신호입니다.")
 
 
 
+    # 매수/매도 호가 조회
+    orderbook = get_orderbook("USDT")
+    print(orderbook)
+
+    # 구매 가능한 USDT 수량 계산
+    USDT_quantity, price = get_market_price_units("USDT", percent=0.1)
+    print(USDT_quantity, price)
 
 
+  

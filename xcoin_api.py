@@ -4,6 +4,13 @@ import base64
 import hmac, hashlib
 import urllib.parse
 import requests
+import os
+import json
+
+# 빗썸 API 키 설정 (환경변수로부터 읽어옴)
+BITHUMB_API_KEY = os.getenv('BITHUMB_API_KEY')
+BITHUMB_SECRET = os.getenv('BITHUMB_SECRET')
+BITHUMB_API_URL = 'https://api.bithumb.com'
 
 
 class XCoinAPI:
@@ -63,5 +70,9 @@ class XCoinAPI:
 
 		url = self.api_url + endpoint
 
-		r = requests.post(url, headers=headers, data=rgParams)
-		return r.json()
+		response = requests.post(url, headers=headers, data=rgParams)
+		return response.json()
+
+
+
+

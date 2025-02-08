@@ -6,6 +6,18 @@ from urllib.parse import urlencode
 import requests
 import json
 import os
+from fastapi import FastAPI, Request
+import uvicorn
+
+
+
+"""
+빗썸 API 2.0 사용 코드
+API 2.0 은 고정 IP를 사용하기 때문에 유동 IP를 사용하는 경우에는 API 1.0을 사용해야 합니다.
+"""
+
+
+app = FastAPI()
 
 # 빗썸 API 키 설정 (환경변수로부터 읽어옴)
 BITHUMB_API_KEY = os.getenv('BITHUMB_API_KEY')
@@ -15,16 +27,6 @@ BITHUMB_API_URL = 'https://api.bithumb.com'
 def place_order(request_body: dict) -> None:
     """
     빗썸 API를 호출하여 주문을 실행하는 함수입니다.
-    
-    Args:
-        request_body (dict): API에 전달할 주문 파라미터
-            예시 (시장가 주문):
-                {
-                    'market': 'KRW-USDT',
-                    'side': 'ask',
-                    'volume': 4,
-                    'ord_type': 'market'
-                }
     """
     # Generate access token
     # 요청 파라미터를 URL 인코딩하여 바이트 문자열로 변환
@@ -115,12 +117,21 @@ def get_balance():
 
 
 
+@app.post("/webhook")
+async def webhook_handler(request: Request):
+
+    try:
+        data = await request.json()
+    except Exception as e:
+        print("JSON 파싱 에러:", e)
+        return {"status": "error", "message": "유효하지 않은 JSON 데이터"}
+    
+    
+    print("Webhook received:\n", json.dumps(data, indent=4, ensure_ascii=False))
 
 
 
-if __name__ == '__main__':
-
-
+    # 잔액 조회
     balance_data = get_balance()
 
     # USDT, KRW의 balance 정보를 찾기
@@ -131,24 +142,40 @@ if __name__ == '__main__':
         if asset.get("currency") == "KRW":
             KRW_balance = asset.get("balance")
 
-    print(f'USDT 잔액 : {usdt_balance}')
-    print(f'KRW 잔액 : {KRW_balance}')
-
-    # KRW_balance가 문자열 형태이므로, 소수점 이하를 제거하기 위해 float로 변환 후 int로 변환
     if KRW_balance is not None:
         KRW_balance = int(float(KRW_balance)*0.99)
 
+    print(f'USDT 잔액 : {usdt_balance}')
+    print(f'KRW 잔액 : {KRW_balance}')
 
-    # 시장가 전량매수 테스트
-    #request_body = dict( market='KRW-USDT', side='bid', price=KRW_balance, ord_type='price' )
-    #place_order(request_body)a
+    final_price = KRW_balance * 0.1
 
-    # 시장가 전량매도 테스트
-    request_body = dict( market='KRW-USDT', side='ask', volume=usdt_balance, ord_type='market' )
-    place_order(request_body)
-   
-
+    # 신호에 따라 매수
+    signal = data.get("signal")
+    if signal is None:
+        return {"status": "error", "message": "signal 필드가 없습니다."}    
     
+    if signal == "buy":
+        request_body = dict( market='KRW-USDT', side='bid', price=final_price, ord_type='price' )
+        place_order(request_body)
+    elif signal == "sell":
+        request_body = dict( market='KRW-USDT', side='ask', volume=usdt_balance, ord_type='market' )
+        place_order(request_body)
+    else:
+        print("알 수 없는 신호입니다.")
+        return {"status": "error", "message": "알 수 없는 신호입니다."}
 
 
-    
+
+
+
+    return {"status": "success", "message": "Webhook received", "data": data}
+
+
+
+
+
+
+if __name__ == '__main__':
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

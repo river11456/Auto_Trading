@@ -14,7 +14,7 @@ BITHUMB_API_URL = 'https://api.bithumb.com'
 
 
 class XCoinAPI:
-	api_url = "https://api.bithumb.com"
+	api_url = BITHUMB_API_URL
 	api_key = 'api_key'
 	api_secret = 'api_secret'
 

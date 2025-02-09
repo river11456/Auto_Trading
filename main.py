@@ -1,9 +1,15 @@
-from my_bittmb_fnc import *
+from mylib import *
 from fastapi import FastAPI, Request
 import uvicorn
 import json
 
 app = FastAPI()
+
+
+#매수/매도할 자산 비율 (0~1)
+BUY_PERCENT = 0.01
+SELL_PERCENT = 1
+
 
 @app.post("/webhook")
 async def webhook_handler(request: Request):
@@ -24,46 +30,24 @@ async def webhook_handler(request: Request):
     
     if signal == "buy":
 
-        # 구매 가능한 USDT 수량 계산
-        USDT_quantity = get_market_price_units("USDT", percent=0.1)
+        # 매수할 USDT 수량 계산
+        USDT_quantity, price = make_order_info(signal, "USDT", percent=BUY_PERCENT)
  
         # 시장가 전량 매수
         result = order_market_buy(USDT_quantity, "USDT", "KRW")
  
-        # 거래가격 확인
-        orderbook = get_orderbook("USDT")
-        price = int(float(orderbook["data"]["asks"][0]["price"]))
-    
-        if result["status"] == "0000":
-            print("🟢 시장가 매수 주문 성공")
-            print(f"거래수량 : {USDT_quantity} USDT")
-            print(f"체결가격 : {price} KRW")
-            print(f"거래금액 : {int(price * USDT_quantity)} KRW")
-
-        else:    
-            print('🔴 시장가 매수 주문 실패')        
+        print_order_info(signal, USDT_quantity, price, result)     
 
 
     elif signal == "sell":
 
-        # 보유 중인 USDT 수량 조회
-        balance = get_balance("USDT")
-        USDT_quantity = float(balance["data"]["total_usdt"])
+        # 매도할 USDT 수량 계산
+        USDT_quantity, price = make_order_info(signal, "USDT", percent=SELL_PERCENT)
 
         # 시장가 전량 매도
         result = order_market_sell(USDT_quantity, "USDT", "KRW")
 
-        # 거래가격 확인
-        orderbook = get_orderbook("USDT")
-        price = int(float(orderbook["data"]["bids"][0]["price"]))
-
-        if result["status"] == "0000":  
-            print("🟢 시장가 매도 주문 성공")
-            print(f"거래수량 : {USDT_quantity} USDT")
-            print(f"체결가격 : {price} KRW")
-            print(f"거래금액 : {int(USDT_quantity * price)} KRW")
-        else:
-            print('🔴 시장가 매도 주문 실패')
+        print_order_info(signal, USDT_quantity, price, result)
 
     else:
         print("알 수 없는 신호입니다.")

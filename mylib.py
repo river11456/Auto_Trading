@@ -216,6 +216,61 @@ def print_order_info(order_type, USDT_quantity, price, result):
     console.print("\n")
 
 
+
+def print_webhook_message(webhook_data):
+    """
+    웹훅 메시지를 터미널에 보기 좋게 출력하는 함수
+
+    Parameters:
+        webhook_data (dict): 웹훅에서 전달된 JSON 데이터
+    """
+    
+    # 📌 웹훅 데이터가 딕셔너리가 아닐 경우 변환
+    if isinstance(webhook_data, str):
+        try:
+            webhook_data = json.loads(webhook_data)
+        except json.JSONDecodeError:
+            console.print("[bold red]❌ 웹훅 데이터 오류: JSON 디코딩 실패![/]")
+            return
+
+    # 📌 웹훅 메시지 테이블 생성
+    table = Table(title="📌 웹훅 메시지", show_header=True, header_style="bold magenta")
+    table.add_column("키", style="cyan", justify="left")
+    table.add_column("값", style="bold yellow", justify="right")
+
+    # 📌 JSON 데이터를 테이블에 추가
+    for key, value in webhook_data.items():
+        table.add_row(key, str(value))
+
+    # ✅ 웹훅 메시지 출력
+    console.print("\n")
+    console.print(table)
+    console.print("\n")
+
+
+def print_webhook_message2(webhook_data):
+    """
+    기본 print()로 터미널에서 안정적으로 출력하는 함수
+    """
+    if isinstance(webhook_data, str):
+        try:
+            webhook_data = json.loads(webhook_data)
+        except json.JSONDecodeError:
+            print("❌ 웹훅 데이터 오류: JSON 디코딩 실패!")
+            return
+
+    print("\n📌 최신 웹훅 메시지\n" + "="*40)
+
+    # 키와 값의 정렬을 맞추기 위한 길이 설정
+    max_key_length = max(len(key) for key in webhook_data.keys()) + 2  # 키 길이 맞추기
+    for key, value in webhook_data.items():
+        print(f"{key.ljust(max_key_length)}: {str(value).rjust(20)}")  # 정렬 유지
+
+    print("="*40 + "\n")
+
+
+
+
 if __name__ == "__main__":
 
 

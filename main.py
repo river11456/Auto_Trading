@@ -1,30 +1,43 @@
 from mylib import *
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 import uvicorn
 import json
+import logging
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+# 로거 설정
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 #매수/매도할 자산 비율 (0~1)
-BUY_PERCENT = 0.01
-SELL_PERCENT = 1
+BUY_PERCENT = 0.01  # KRW의 1% 매수
+SELL_PERCENT = 1  # 테더 전량 매도
+
+
 
 
 @app.post("/webhook")
 async def webhook_handler(request: Request):
 
     try:
-        data = await request.json()
+        webhook_data = await request.json()
     except Exception as e:
         print("JSON 파싱 에러:", e)
         return {"status": "error", "message": "유효하지 않은 JSON 데이터"}
     
-    #print("Webhook received:\n", json.dumps(data, indent=4, ensure_ascii=False))
+
+     # ✅ 웹훅 메시지를 로깅 (print 대신 logger 사용)
+    print('\n')
+    logger.info(f"웹훅 데이터 수신")
+    
+    # 웹훅 메시지 출력
+    print_webhook_message(webhook_data)
 
 
     # 신호에 따라 매수
-    signal = data.get("signal")
+    signal = webhook_data.get("signal")
     if signal is None:
         return {"status": "error", "message": "signal 필드가 없습니다."}    
     
@@ -50,19 +63,24 @@ async def webhook_handler(request: Request):
         print_order_info(signal, USDT_quantity, price, result)
 
     else:
-        print("알 수 없는 신호입니다.")
-        return {"status": "error", "message": "알 수 없는 신호입니다."}
+        print("매수 또는 매도 신호가 아닙니다.\n")
+        return {"status": "error", "message": "매수 또는 매도 신호가 아닙니다."}
 
 
-    return {"status": "success", "message": "Webhook received", "data": data}
+    return {"status": "success", "message": "Webhook received", "webhook_data": webhook_data}
 
+
+
+# `/webhook` 외 모든 요청을 차단
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def block_other_routes(full_path: str):
+    raise HTTPException(status_code=403, detail="Access Denied")
 
 
 
 if __name__ == "__main__":
-    # host="0.0.0.0"은 모든 네트워크 인터페이스에서 접근 가능하도록 하며,
-    # port=8000은 로컬에서 사용할 포트 번호입니다.
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # FastAPI 서버를 로컬에서만 실행 (Nginx가 외부 요청을 대신 처리)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
  
 
 

@@ -4,6 +4,12 @@ import json
 from xcoin_api import XCoinAPI
 from rich.console import Console
 from rich.table import Table
+import sys
+
+
+
+
+sys.stdout.reconfigure(encoding='utf-8')  # ✅ UTF-8 인코딩 강제 적용
 
 
 # 빗썸 API 키 설정 (환경변수로부터 읽어옴)
@@ -177,43 +183,79 @@ def make_order_info(signal, order_currency, payment_currency = "KRW", percent = 
 
 console = Console()
 
-def print_order_info(order_type, USDT_quantity, price, result):
+def print_order_info(order_type, symbol, quantity, price, result):
     """
     주문 정보를 터미널에 출력하는 함수
 
     Parameters:
-        order_type (str): "매수" 또는 "매도"
-        USDT_quantity (float): 거래 수량 (USDT 단위)
+        order_type (str): "buy" 또는 "sell"
+        symbol (str): 거래할 코인 (예: "BTC", "ETH", "USDT")
+        quantity (float): 거래 수량
         price (float): 체결 가격 (KRW)
         result (dict): API 응답 결과
     """
 
+    # 수수료 정보 조회
+    account_info = get_account_info(symbol) 
+    fee = float(account_info["data"]["trade_fee"])
+
+
     # 🔴 매수 (red) / 🔵 매도 (blue) 색상 및 문구 결정
     order_color = "red" if order_type == "buy" else "blue"
-    order_type = "매수" if order_type == "buy" else "매도"
+    order_text = "매수" if order_type == "buy" else "매도"
 
     # 📌 주문 정보 테이블 생성
-    table = Table(title="📌 주문 정보", show_header=True, header_style="bold magenta")
+    table = Table(title=f"📌 주문 정보", show_header=True, header_style="bold magenta")
     table.add_column("항목", style="cyan", justify="left")
     table.add_column("내용", style=f"bold {order_color}", justify="right")
 
-    table.add_row("거래종류", f"[{order_color}]{order_type}[/]")
-    table.add_row("거래수량", f"[cyan]{USDT_quantity} USDT[/]")
+    table.add_row("거래종류", f"[{order_color}]{order_text}[/]")
+    table.add_row("거래코인", f"[cyan]{symbol}[/]")  # ✅ USDT가 아닌 모든 코인 지원
+    table.add_row("거래수량", f"[cyan]{quantity} {symbol}[/]")
     table.add_row("체결가격", f"[blue]{price:,} KRW[/]")
-    table.add_row("거래금액", f"[bold yellow]{round(price * USDT_quantity):,} KRW[/]")
+    table.add_row("거래금액", f"[bold yellow]{round(price * quantity):,} KRW[/]")
+    table.add_row("수수료", f"[bold yellow]{round(price * quantity * fee):,} KRW[/]")
+
+    sign = "+" if order_type == "sell" else "-"
+    sign_color = "red" if order_type == "sell" else "blue"
+
+    if result["status"] == "0000":
+        table.add_row("정산금액", f"[bold {sign_color}]{sign}{round(price * quantity * (1 - fee)):,} KRW[/]")
+        table.add_row("거래상태", f"[bold green]주문 성공[/]")
+    else:
+        table.add_row("정산금액", "[bold #808080]0[/]")
+        table.add_row("거래상태", "[bold #808080]주문 실패[/]")
+
 
     # ✅ 주문 성공 여부 확인
     console.print("\n")
     if result["status"] == "0000":
-        console.print(f"[bold {order_color}]✅ {order_type} 주문 성공![/]")
+        console.print(f"[bold {order_color}]✅ {order_text} 주문 성공![/]")
+
     else:
-        console.print("[bold red]❌ 주문 실패![/]")
-        console.print(json.dumps(result, indent=4, ensure_ascii=False))
+        console.print("[bold #808080]❌ 주문 실패![/]")
+        if quantity == 0:  # 거래 수량이 0일 경우
+            console.print("[bold #808080]⚠️  거래 수량이 0입니다. 주문을 확인하세요.[/]")
+        elif price < 5000: 
+            console.print("[bold #808080]⚠️  최소 주문 금액은 5,000원입니다.[/]")
 
     # 🎨 테이블 출력
     console.print("\n")
     console.print(table)
     console.print("\n")
+
+
+def print_order_info_sell_test():
+
+
+    print("\n 매도 테스트 (실제 거래가 아님)")
+    print_order_info("sell","USDT", 10, 1500, {'status': '0000'})
+
+
+def print_order_info_buy_test():
+    
+    print("\n 매수 테스트 (실제 거래가 아님)")
+    print_order_info("buy","USDT", 10, 1500, {'status': '0000'})
 
 
 
@@ -248,25 +290,33 @@ def print_webhook_message(webhook_data):
     console.print("\n")
 
 
-def print_webhook_message2(webhook_data):
+def print_My_Balance(balance):
     """
-    기본 print()로 터미널에서 안정적으로 출력하는 함수
+    내 자산 정보를 터미널에 출력하는 함수
+
+    Parameters:
+        balance (dict): 내 자산 정보
     """
-    if isinstance(webhook_data, str):
-        try:
-            webhook_data = json.loads(webhook_data)
-        except json.JSONDecodeError:
-            print("❌ 웹훅 데이터 오류: JSON 디코딩 실패!")
-            return
+    
+    # 📌 내 자산 정보 테이블 생성
+    table = Table(title="📌 내 자산 정보", show_header=True, header_style="bold magenta")
+    table.add_column("코인", style="cyan", justify="left")
+    table.add_column("보유량", style="bold yellow", justify="right")
 
-    print("\n📌 최신 웹훅 메시지\n" + "="*40)
+    # 📌 자산 정보를 테이블에 추가
+    for key, value in balance["data"].items():
+        if key.startswith("total_") and float(value) > 0:
 
-    # 키와 값의 정렬을 맞추기 위한 길이 설정
-    max_key_length = max(len(key) for key in webhook_data.keys()) + 2  # 키 길이 맞추기
-    for key, value in webhook_data.items():
-        print(f"{key.ljust(max_key_length)}: {str(value).rjust(20)}")  # 정렬 유지
+            if key[6:] == "krw":
+                table.add_row(key[6:].upper(), f"{int(float(value)):,} KRW")
+            else:
+                table.add_row(key[6:].upper(), str(value))
 
-    print("="*40 + "\n")
+    # ✅ 내 자산 정보 출력
+    console.print("\n")
+    console.print(table)
+    console.print("\n")
+
 
 
 
@@ -285,7 +335,9 @@ if __name__ == "__main__":
 
 
     # 내 자산 정보 조회
-    #get_balance("USDT")
+    balance = get_balance("USDT")
+    print_My_Balance(balance)
 
-    print_order_info("buy", 100, 1500, {'status': '000'})
-    print_order_info("sell", 100, 1500, {'status': '000'})
+
+
+    #print_order_info("sell", "USDT", 10, 1543, {'status': '0000'})

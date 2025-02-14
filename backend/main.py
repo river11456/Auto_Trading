@@ -1,4 +1,4 @@
-from mylib import *
+from trading_service import *
 from fastapi import FastAPI, Request, HTTPException
 import uvicorn
 import json
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 #매수/매도할 자산 비율 (0~1)
-BUY_PERCENT = 0.01  # KRW의 1% 매수
+BUY_PERCENT = 0.98  # KRW의 1% 매수
 SELL_PERCENT = 1  # 테더 전량 매도
 
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     # FastAPI 서버를 로컬에서만 실행 (Nginx가 외부 요청을 대신 처리)
     uvicorn.run(app, host="127.0.0.1", port=8000)
- 
+
 
 
 

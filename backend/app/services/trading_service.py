@@ -31,7 +31,7 @@ def execute_trade(request: TradeRequest) -> TradeResponse:
         message = "매수 성공" if result.get("status") == "0000" else "매수 실패"
     
     elif signal == "sell":
-        logger.error("usdt_premium 전략에 따라 매도 진행")
+        logger.info("usdt_premium 전략에 따라 매도 진행")
         result = order_market_sell(units, symbol)
         message = "매도 성공" if result.get("status") == "0000" else "매도 실패"
     

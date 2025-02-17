@@ -1,3 +1,10 @@
+# backend 폴더만 보면 됨
+
+나머지 폴더는 구조만 만든 Dummy 파일들
+
+
+
+
 🚀 Automated Crypto Trading Backend
 
 이 프로젝트는 TradingView 웹훅 기반 자동 암호화폐 거래 시스템의 백엔드입니다.FastAPI, Bithumb API, Rich 로그 시스템을 활용하여 실시간 거래를 수행할 수 있도록 설계되었습니다.
@@ -34,12 +41,12 @@ TBD
 
 .env 파일을 생성하고 다음과 같은 환경 변수를 설정합니다.
 
-# 빗썸 API 키 설정
+빗썸 API 키 설정
 BITHUMB_API_KEY=your_api_key_here
 BITHUMB_SECRET=your_api_secret_here
 
 
-# 서버 환경 설정
+서버 환경 설정
 ENV=development   (이건 아직 의미 없음)
 
 

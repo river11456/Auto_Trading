@@ -1,8 +1,9 @@
 from app.services.bithumb_api_client import get_orderbook, get_balance
 from app.models.trading_model import OrderbookResponse, BalanceResponse
-from typing import Tuple, Dict
+from typing import Tuple
 from app.exceptions.custom_exceptions import BusinessLogicError
 from app.config.config import settings
+from app.utils.logger import logger
 
 '''
 
@@ -33,16 +34,28 @@ def usdt_premium_strategy(signal: str) -> Tuple[bool, str, str, float, float]:
     long_position = total_usdt > 0
 
 
+    strategy_result = dict()
+
+    strategy_result["strategy"] = "usdt_premium"
+
+
+
     if signal == "buy" and not long_position:
+        strategy_result["result"] = "Execute trade"
         symbol = "USDT"
         units, price = make_buy_order_info(symbol, settings.BUY_PERCENT)
+        logger.info(f"전략 평가 결과: {strategy_result}")
         return True, "buy", symbol, units, price  
 
     elif signal == "sell" and long_position:
+        strategy_result["result"] = "Execute trade"
         symbol = "USDT"
-        units, price = make_sell_order_info(symbol, settings.SELL_PERCENT) 
+        units, price = make_sell_order_info(symbol, settings.SELL_PERCENT)
+        logger.info(f"전략 평가 결과: {strategy_result}") 
         return True, "sell", symbol, units, price
     else:
+        strategy_result["result"] = "Skip"
+        logger.info(f"전략 평가 결과: {strategy_result}")
         return False, signal, "", 0, 0  # 실행 불가능 (should_execute=False)
     
 

@@ -10,6 +10,10 @@ def find_and_kill_process(port: int):
     """
     process_found = False  # 프로세스 종료 여부
 
+
+    logger.info(f"🔍 {port} 포트 사용 중인 프로세스 확인... ")
+
+
     # 모든 프로세스의 네트워크 연결 조회
     for conn in psutil.net_connections(kind="inet"):
         if conn.laddr.port == port:
@@ -22,8 +26,8 @@ def find_and_kill_process(port: int):
                 continue
 
     if process_found:
-        logger.info(f"✅ {port} 포트 점유 프로세스를 정상적으로 종료했습니다. 서버를 재시작합니다.")
+        logger.info(f"✅ {port} 포트 점유 프로세스를 정상적으로 종료했습니다.")
     else:
-        logger.info(f"✅ {port} 포트를 사용하는 프로세스가 없습니다.")
+        logger.info(f"✅ {port} 포트를 사용 중인 프로세스가 없습니다.")
 
     return process_found  # 종료 여부 반환

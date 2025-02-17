@@ -1,11 +1,131 @@
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 from rich.panel import Panel
 from datetime import datetime
+import json
+import re
+import ast
+from rich.syntax import Syntax
 from app.models.trading_model import (
     TradeRequest, TradeResponse, TransactionResponse, BalanceResponse
 )
 console = Console()
+
+
+
+
+def display_log(log_message: str):
+    """
+    Rich 라이브러리를 활용하여 로그 메시지를 보기 좋게 출력하는 함수.
+
+    Args:
+        log_message (str): 로그 메시지 문자열 (포맷: "[LEVEL] [TIME] [MODULE:FUNC] MESSAGE")
+    """
+
+    # 로그 패턴 정규식 (로그 레벨, 시간, 모듈:함수, 메시지 추출)
+    log_pattern = r"\[(?P<time>.*?)\] \[(?P<level>\w+)\] (?:\[(?P<module>.*?):(?P<func>.*?)\] )?(?P<message>.*)"
+
+    match = re.match(log_pattern, log_message)
+    if not match:
+        console.print(f"[red]❌ 로그 형식이 올바르지 않습니다: {log_message}[/red]")
+        return
+
+    # 각 로그 요소 추출
+    level = match.group("level")
+    time = match.group("time")
+    #module = match.group("module")
+    func = match.group("func")
+    message = match.group("message")
+
+    # 로그 레벨별 색상 설정
+    level_colors = {
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold red",
+    }
+    level_color = level_colors.get(level, "white")
+
+    # Rich Text 객체 생성
+    log_text = Text()
+    log_text.append(f"[{time}] ", style="dim")  # 시간
+    log_text.append(f"[{level}] ", style=f"bold {level_color}")  # 로그 레벨
+    #log_text.append(f"[{module}:{func}] ", style="bold magenta")  # 모듈명 & 함수명
+
+    # 문자열에서 JSON 데이터 감지
+    json_match = re.search(r"\{.*\}", message)  # JSON 객체 감지
+    if json_match:
+        json_str = json_match.group()
+        try:
+            json_data = json.loads(json_str.replace("'", "\""))  # JSON 변환 시도
+
+            # 기존 문자열에서 JSON을 제외한 부분 추출
+            prefix = message[:message.find(json_str)].strip()
+            suffix = message[message.find(json_str) + len(json_str):].strip()
+
+            # 기존 메시지 출력
+            if prefix:
+                log_text.append(f"{prefix} ", style="white")
+
+            console.print(log_text)  # 기존 메시지 먼저 출력
+
+            # JSON 데이터를 테이블로 출력
+            json_table = Table(show_header=True, header_style="bold cyan")
+            json_table.add_column("Key", style="bold yellow", justify="center")
+            json_table.add_column("Value", justify="center")
+
+            for key, value in json_data.items():
+                json_table.add_row(str(key), str(value))
+
+            console.print(json_table)
+
+            # 기존 메시지의 뒤쪽 텍스트 출력 (있을 경우)
+            if suffix:
+                console.print(suffix, style="white")
+
+        except json.JSONDecodeError:
+            log_text.append(message, style="white")  # 변환 실패하면 그냥 출력
+            console.print(log_text)
+    else:
+        log_text.append(message, style="white")  # 일반 문자열 처리
+        console.print(log_text)
+
+
+def convert_enum_values(data):
+    """
+    데이터 내 Enum 형식(<EnumType.VALUE: 'value'>)을 일반 문자열로 변환하는 함수.
+    """
+    if isinstance(data, dict):
+        return {key: convert_enum_values(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_enum_values(item) for item in data]
+    elif isinstance(data, tuple):
+        return tuple(convert_enum_values(item) for item in data)
+    elif isinstance(data, set):
+        return {convert_enum_values(item) for item in data}
+    elif isinstance(data, str):
+        return data
+    else:
+        return str(data)  # Enum 같은 특수 객체를 문자열로 변환
+
+
+
+
+
+
+    """
+    display_log 함수로 모든  API response 를 처리 가능
+
+    아래의 함수는 API response를 보기 쉽도록 처리한 함수
+    
+    """
+
+
+
+
+
 
 
 def display_trade_request(trade_request: TradeRequest):

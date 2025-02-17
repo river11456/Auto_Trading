@@ -5,6 +5,9 @@ from app.utils.logger import logger
 
 def check_and_start_nginx():
     """Nginx 서버 실행 상태를 확인하고 필요 시 실행"""
+
+    logger.info("🔍 Nginx 실행 여부 확인...")
+
     try:
         # 1️⃣ OS 확인
         os_name = platform.system()

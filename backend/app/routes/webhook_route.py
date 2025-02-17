@@ -3,6 +3,7 @@ from app.models.trading_model import TradeRequest, TradeResponse
 from app.services.trading_service import execute_trade
 from app.utils.logger import logger
 from app.utils.display import display_trade_request, display_trade_response
+from app.utils.display import display_log
 
 # 라우터 인스턴스 생성
 router = APIRouter()
@@ -20,7 +21,7 @@ async def handle_webhook(request: TradeRequest):
 
     # 웹훅 수신 로그 출력
     logger.info(f"웹훅 요청 수신: {request.model_dump()}")
-    display_trade_request(request)
+    
 
     # 요청 데이터 유효성 검증
     if request.signal not in {"buy", "sell", "test"}:
@@ -30,7 +31,6 @@ async def handle_webhook(request: TradeRequest):
     try:
         trade_response = execute_trade(request)
         logger.info(f"거래 실행 결과: {trade_response.model_dump()}")
-        display_trade_response(trade_response)
         return trade_response
 
     except Exception as e:

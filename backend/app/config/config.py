@@ -19,8 +19,8 @@ class Config:
     LOG_LEVEL = "INFO"
     LOG_MAX_BYTES = 5 * 1024 * 1024  # 5MB
     LOG_BACKUP_COUNT = 5
-    LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-
+    LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(module)s:%(funcName)s] %(message)s"
+ 
 
     # 트레이딩 설정
     BUY_PERCENT = 0.0006  # 매수 비율 (98%)

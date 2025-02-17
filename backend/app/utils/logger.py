@@ -1,38 +1,61 @@
+import os
+import re
 import logging
 from logging.handlers import RotatingFileHandler
-import os
+from app.utils.display import display_log
 from app.config.config import settings
 
 
-def setup_logger(log_name=None):
-    """
-    로거 설정 함수
 
-    Parameters:
-        log_name (str): 로거 이름 (None이면 기본 설정 사용)
-    Returns:
-        logging.Logger: 설정된 로거 객체
+
+
+# 터미널에서 보기 좋게 출력하기 위한 커스텀 핸들러  
+# 기존 핸들러의 출력을 인자로 사용해서 출력
+class ConsoleHandlerWithDisplay(logging.StreamHandler):
+    """기존 핸들러 출력 후 display_log()를 호출하는 콘솔 핸들러"""
+
+    def emit(self, record):
+        try:
+            if record.levelno >= logging.INFO:
+                log_entry = self.format(record) # 기존 핸들러 출력 
+                #super().emit(record)  # 원래 콘솔에 출력
+
+                # Enum 변환 적용
+                log_entry = sanitize_log_entry(log_entry)
+
+                display_log(log_entry)
+
+        except Exception as e:
+            print(f"로그 출력 중 오류 발생: {str(e)}")
+
+
+def sanitize_log_entry(log_entry: str) -> str:
     """
+    로그 메시지에서 Enum 형식 (<EnumType.VALUE: 'value'>)을 단순한 문자열로 변환.
+    """
+    return re.sub(r"<\w+\.\w+: '([^']+)'>", r"'\1'", log_entry)  # Enum을 일반 문자열로 변환
+
+
+def setup_logger():
+    """로거 설정"""
     # logs 디렉토리 생성
     os.makedirs(settings.LOG_DIR, exist_ok=True)
 
-    # 로거 이름 설정
-    if log_name is None:
-        log_name = "logger"
-
-    # 로거 생성
-    logger = logging.getLogger(log_name)
+    # 기본 로거 가져오기
+    logger = logging.getLogger()
     logger.setLevel(getattr(logging, settings.LOG_LEVEL.upper()))
 
-    # 포맷 정의
-    log_format = logging.Formatter(settings.LOG_FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
+
+    # 포맷 정의 
+    log_format = logging.Formatter(settings.LOG_FORMAT)
 
     # 콘솔 핸들러 설정
-    console_handler = logging.StreamHandler()
+    #console_handler = logging.StreamHandler()  <- 기본 출력 핸들러
+    console_handler = ConsoleHandlerWithDisplay()  #display를 위한 커스텀 핸들러
     console_handler.setFormatter(log_format)
     logger.addHandler(console_handler)
 
-    # 파일 핸들러 설정 (config에서 설정 가져오기)
+    # 파일 핸들러 설정
     file_handler = RotatingFileHandler(
         settings.LOG_FILE,
         maxBytes=settings.LOG_MAX_BYTES,
@@ -40,19 +63,15 @@ def setup_logger(log_name=None):
         encoding='utf-8'
     )
     file_handler.setFormatter(log_format)
+    file_handler.setLevel(settings.LOG_LEVEL)
     logger.addHandler(file_handler)
 
     return logger
 
 
+
 # 전역 로거 인스턴스 생성
 logger = setup_logger()
-
-trading_loger = setup_logger("trading_loger")
-strategy_loger = setup_logger("strategy_loger")
-bithumb_api_loger = setup_logger("bithumb_api_loger")
-
-
 
 
 if __name__ == "__main__":

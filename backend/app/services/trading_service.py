@@ -69,7 +69,7 @@ def generate_skipped_trade_response() -> TradeResponse:
     return TradeResponse(
         status="skipped",
         message="전략 조건 미충족",
-        order_id="",
+        order_id="None",
         filled_quantity=0,
         avg_price=0,
         fee=0,

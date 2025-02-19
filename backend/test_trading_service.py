@@ -1,6 +1,8 @@
-from app.services.trading_service import execute_trade
+from app.services.trading_service import execute_trade, fetch_latest_transaction
 from app.models.trading_model import TradeRequest
-from app.utils.logger import trading_loger
+from app.utils.logger import logger
+
+from app.services.bithumb_api_client import get_user_transactions
 
 
 def test_execute_trade_buy():
@@ -33,4 +35,9 @@ def test_execute_trade_test_mode():
 if __name__ == "__main__":
     #test_execute_trade_buy()
     #test_execute_trade_sell()
-    test_execute_trade_test_mode()
+    #test_execute_trade_test_mode()
+
+    fetch_latest_transaction("usdt", "sell")
+ 
+  
+

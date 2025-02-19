@@ -13,6 +13,17 @@ Trading View에서 제공하는 거래 전략을 기반으로 매수/매도 주�
 
 '''
 
+def get_current_strategy():
+    """
+    현재 설정된 전략 정보를 반환하는 함수
+    """
+    return {
+        "strategy": "USDT Premium Strategy",
+        "buy_percent": settings.BUY_PERCENT,
+        "sell_percent": settings.SELL_PERCENT
+    }
+
+
 
 def usdt_premium_strategy(signal: str) -> Tuple[bool, str, str, float, float]:
     """
@@ -37,21 +48,21 @@ def usdt_premium_strategy(signal: str) -> Tuple[bool, str, str, float, float]:
     strategy_result = dict()
 
     strategy_result["strategy"] = "usdt_premium"
+    strategy_result["result"] = "Execute trade"
 
+
+    #for test
+    #make_buy_order_info(symbol, settings.BUY_PERCENT)
 
 
     if signal == "buy" and not long_position:
-        strategy_result["result"] = "Execute trade"
-        symbol = "USDT"
-        units, price = make_buy_order_info(symbol, settings.BUY_PERCENT)
         logger.info(f"전략 평가 결과: {strategy_result}")
+        units, price = make_buy_order_info(symbol, settings.BUY_PERCENT)
         return True, "buy", symbol, units, price  
 
     elif signal == "sell" and long_position:
-        strategy_result["result"] = "Execute trade"
-        symbol = "USDT"
+        logger.info(f"전략 평가 결과: {strategy_result}")
         units, price = make_sell_order_info(symbol, settings.SELL_PERCENT)
-        logger.info(f"전략 평가 결과: {strategy_result}") 
         return True, "sell", symbol, units, price
     else:
         strategy_result["result"] = "Skip"
@@ -93,6 +104,17 @@ def make_buy_order_info(order_currency: str, percent: float = 0.1) -> Tuple[floa
 
     if unit <= 0:
         raise BusinessLogicError("매수할 수량이 0 이하입니다.")
+    
+
+    buy_order_info = dict()
+    buy_order_info["order_currency"] = order_currency
+    buy_order_info["total_krw"] = str(round(balance.total_krw))
+    buy_order_info["percent"] = f"{percent*100}%"
+    buy_order_info["final_krw"] = str(final_krw)
+    buy_order_info["units"] = str(unit)
+    buy_order_info["price"] = str(lowest_ask_price)
+
+    logger.info(f"주문 요청 정보: {buy_order_info}")
 
     return unit, lowest_ask_price
 

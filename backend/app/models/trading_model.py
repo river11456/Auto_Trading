@@ -146,11 +146,11 @@ class TransactionResponse(BaseModel):
                     transfer_date=int(tx["transfer_date"]),
                     order_currency=tx["order_currency"],
                     payment_currency=tx["payment_currency"],
-                    units=float(tx["units"]),
-                    price=float(tx["price"]),
-                    amount=float(tx["amount"]),
+                    units=float(tx["units"].replace(",", "")),  # 쉼표 제거
+                    price=float(tx["price"].replace(",", "")),  # 쉼표 제거
+                    amount=float(tx["amount"].replace(",", "")),  # 쉼표 제거
                     fee_currency=tx["fee_currency"],
-                    fee=float(tx["fee"]),
+                    fee=float(tx["fee"].replace(",", "")), # 쉼표 제거
                     order_balance=float(tx["order_balance"]),
                     payment_balance=float(tx["payment_balance"]),
                 )

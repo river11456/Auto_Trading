@@ -23,7 +23,7 @@ class Config:
  
 
     # 트레이딩 설정
-    BUY_PERCENT = 0.0006  # 매수 비율 (98%)
+    BUY_PERCENT = 0.5  # 매수 비율 (98%)
     SELL_PERCENT = 1.0  # 매도 비율 (100%)
 
     # 서버 설정
